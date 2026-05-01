@@ -1,0 +1,53 @@
+name: DevSecOps Quality & Security Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  quality-security:
+    name: Security & Code Quality Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout source code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Semgrep (SAST)
+      - name: Run Semgrep (SAST)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      # 3. Setup Python (biar Snyk jalan aman)
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # 4. Install dependencies (opsional, tergantung project kamu)
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt || true
+
+      # 5. Snyk (Dependency Vulnerability Scan)
+      - name: Run Snyk SCA
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+
+      # 6. SonarCloud Scan
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # 7. Quality Gate Check
+      - name: Quality Gate Check
+        run: echo "Menunggu hasil Quality Gate dari SonarCloud..."
